@@ -45,6 +45,14 @@ module.exports = class AddCommand extends Commando.Command {
         )
       );
 
+      if (options.length === 0) {
+        const embed = new Discord.MessageEmbed()
+          .setTitle("There are no users, in the database.")
+          .setColor("#faa61a");
+
+        return message.channel.send(embed);
+      }
+
       const select = new MessageMenu()
         .setID("customid")
         .setPlaceholder("Click me! :D")
