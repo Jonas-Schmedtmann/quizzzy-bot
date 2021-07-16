@@ -17,5 +17,8 @@
     "discord.js": "^12.5.3",
     "discord.js-commando": "^0.12.3",
     "dotenv": "^10.0.0"
+  },
+  "engines": {
+    "node": ">=10.0.0"
   }
 }
