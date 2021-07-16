@@ -1,0 +1,21 @@
+{
+  "name": "quizzzy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "author": "Manas Khandelwal",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "bad-words": "^3.0.4",
+    "cartoon-avatar": "^1.0.2",
+    "discord-buttons": "^4.0.0",
+    "discord.js": "^12.5.3",
+    "discord.js-commando": "^0.12.3",
+    "dotenv": "^10.0.0"
+  }
+}
