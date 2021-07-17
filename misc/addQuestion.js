@@ -1,5 +1,5 @@
+const Discord = require("discord.js");
 const generateQuestion = require("./generateQuestion");
-// const fs = require("fs");
 const axios = require("axios");
 const { MessageButton, MessageActionRow } = require("discord-buttons");
 
@@ -13,122 +13,176 @@ const getQuestionCount = async () => {
 };
 
 module.exports = async function (message, client) {
-  // Delete the command
-  await message.delete();
+  const userId = message.author.id;
+  const channelId = message.channel.id;
 
-  // Get the message
-  const fetched = await message.channel.messages.fetch({ limit: 1 });
-  const question = fetched.first();
+  const send = (msg) => message.channel.send(msg);
 
-  // Parse the Message
-  const [content, optionsStr, answerOption, explanation] = question.content
-    .split("%%%")
-    .map((part) => part.trim());
+  class Question {
+    constructor() {
+      this.questions = [];
+      this.replies = [];
+      this.currentQuestion = 0;
+    }
 
-  if (!content || !optionsStr || !answerOption) {
-    return message.reply(`The question is not in the correct format. Kindly follow the correct format:
-\`\`\`
-question
-%%%
-option 1
+    setQuestions(questions) {
+      this.questions.push(...questions);
+    }
 
-option 2
-
-option 3
-%%%
-correct option letter like: a
-%%%
-explanation
-\`\`\``);
-  }
-
-  const options = optionsStr.split("\n").filter((option) => option !== "");
-
-  // Genrating the message body
-  const post = {
-    question: content,
-    options,
-    correctOption: answerOption,
-    userId: message.author.id,
-    questionNo: (await getQuestionCount()) + 1,
-    explanation,
-  };
-
-  if (question.attachments.size) {
-    post.image = Array.from(question.attachments.values())[0].url;
-  }
-
-  // Genrating the question
-  const [questionEmbed, answerEmbed] = await generateQuestion(
-    content,
-    options,
-    post.questionNo,
-    post.image,
-    message
-  );
-
-  const button = new MessageButton()
-    .setStyle("green")
-    .setLabel("Add Question")
-    .setEmoji(process.env.CORRECT_EMOJI_ID)
-    .setID("add_question");
-
-  const button2 = new MessageButton()
-    .setStyle("red")
-    .setLabel("Cancel")
-    .setEmoji(process.env.WRONG_EMOJI_ID)
-    .setID("remove_question");
-
-  const row = new MessageActionRow().addComponents(button, button2);
-  // Confirm Message
-  const confirmAnswerMessage = await message.channel.send(
-    "👇 This is how the answer of the last question will look like, are u happy with it?",
-    answerEmbed
-  );
-  const confirmMessage = await message.channel.send(
-    "👇 This is how the question will look, are u happy with it?",
-    questionEmbed
-  );
-  const buttons = await message.channel.send("﹏", row);
-
-  // Check Confirmation
-  client.on("clickButton", async ({ id, message, clicker, reply }) => {
-    const { user, member } = clicker;
-    if (!user.bot && member.hasPermission("MANAGE_ROLES")) {
-      const deleteMessages = async (msg, sec = 3) => {
-        const infoMessage = await reply.send(msg);
-        confirmAnswerMessage.delete();
-        confirmMessage.delete();
-        buttons.delete();
-
-        setTimeout(() => {
-          infoMessage.delete();
-        }, sec * 1000);
-      };
-      // Add the question
-      if (id === "add_question") {
-        // Post the Message
-        await axios({
-          method: "POST",
-          url: `${process.env.BASE_URL}questions`,
-          data: post,
-        });
-
-        // Show final message
-        message.client.channels.cache
-          .get(process.env.QUESTION_CHANNEL_ID)
-          .send(`<@&${process.env.TRIVIA_ROLE_ID}>`, answerEmbed);
-        message.client.channels.cache
-          .get(process.env.QUESTION_CHANNEL_ID)
-          .send(questionEmbed);
-
-        deleteMessages("https://i.stack.imgur.com/KZiub.gif");
+    askQuestion(prevReply = null) {
+      const command = this.checkCommand(prevReply);
+      // console.log(command);
+      if (!command) {
+        this.currentQuestion--;
+        return this.askQuestion();
       }
 
-      // Delete the messages
-      if (id === "remove_question") {
-        deleteMessages("https://i.stack.imgur.com/dB8Ny.gif");
+      if (this.currentQuestion < this.questions.length) {
+        this.replies.push(prevReply);
+
+        if (prevReply) {
+          send(
+            `\`${prevReply}\`\n${this.questions[this.currentQuestion].question}`
+          );
+        } else {
+          send(this.questions[this.currentQuestion].question);
+        }
+        console.log("command", command);
+        if (command) this.currentQuestion++;
+      } else {
+        this.save();
       }
     }
-  });
+
+    checkCommand(commandMsg) {
+      if (commandMsg === null) return true;
+      const curQuestion = this.questions[this.currentQuestion - 1];
+
+      switch (commandMsg.trim().toLowerCase()) {
+        case "cancel":
+          this.message("ERROR", "Question creating has been cancelled!");
+          this.reset();
+          return true;
+
+        case "skip":
+          if (curQuestion.optional) {
+            this.message("SUCCESS", "Question has been skipped!");
+            return true;
+          } else {
+            this.message("ERROR", "Question is not optional!");
+            return false;
+          }
+      }
+
+      return true;
+    }
+
+    validateReply(reply) {
+      const curQuestion = this.questions[this.currentQuestion - 1];
+
+      if (!curQuestion.validate(reply)) {
+        this.message("ERROR", curQuestion.validationError);
+      }
+    }
+
+    onReplies(msg) {
+      if (
+        msg.channel.id === channelId &&
+        msg.author.id === userId &&
+        !msg.author.bot
+      ) {
+        const reply = msg.content.trim();
+        question.askQuestion(reply);
+      }
+    }
+
+    save() {
+      console.log("ON SAVE 👇👇");
+      console.log(this.replies);
+      send("─".repeat(97));
+      this.reset();
+    }
+
+    message(type, message) {
+      const embed = new Discord.MessageEmbed()
+        .setTitle(message)
+        .setColor(type === "ERROR" ? "#ff3733" : "#00ffac");
+      send(embed);
+    }
+
+    reset() {
+      this.questions = [];
+      this.replies = [];
+      this.currentQuestion = 0;
+
+      client.removeListener("message", question.onReplies);
+      console.log("😳 RESET 😳");
+    }
+  }
+
+  const question = new Question();
+
+  question.setQuestions([
+    {
+      question: "Please enter the question you want to ask.",
+      validate(reply) {
+        return reply.length < 256;
+      },
+      validationError:
+        "Titles is limited to 256 characters, if you want to add more you can add it in the description.",
+    },
+    {
+      question: "(OPTIONAL) Please enter a description for the question.",
+      optional: true,
+      validate(reply) {
+        return reply.length < 4096 - 150;
+      },
+      validationError:
+        "Description is limited to 4096 characters, please reduce the text.",
+    },
+    {
+      question:
+        "Please enter the options for the question. Each should be on a different line and don't add the prefix. Example: **Correct** `option xyz` **Incorrect** `b) option xyz`",
+      validate(reply) {
+        const arr = reply.split("\n").map((opt) => opt.trim());
+
+        return (
+          arr.each((opt) => opt.length < 1024) &&
+          arr.length >= 2 &&
+          arr.length <= 12
+        );
+      },
+      validationError:
+        "Options should be more than or equal to 2 and less than or equal to 12",
+    },
+    {
+      question:
+        "Please enter the correct option. Just enter the correct letter. Example: A.",
+      validate(reply) {
+        return reply.trim().length === 1;
+      },
+      validationError: "Correct option should just be a letter, Example: A",
+    },
+    {
+      question: "(OPTIONAL) Please add a image related to the question.",
+      optional: true,
+      validate(reply) {
+        console.log("IMAGE: ", reply);
+        return true;
+      },
+      validationError:
+        "Description is limited to 4096 characters, please reduce the text.",
+    },
+    {
+      question: "Please enter the explanation for this question.",
+      validate(reply) {
+        return reply.length < 4096;
+      },
+      validationError:
+        "Explanation is limited to 4096 characters, please reduce the text.",
+    },
+  ]);
+
+  question.askQuestion(null);
+  client.on("message", question.onReplies);
 };
