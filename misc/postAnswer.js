@@ -68,7 +68,7 @@ const confirmInvalidAnswer = async function (message, latestQuestion) {
     )
     .setAuthor(`Question Number #${latestQuestion.questionNo}`)
     .setFooter(
-      message.author.username,
+      `${message.author.username} (${message.author.id})`,
       message.author.avatarURL()
         ? message.author.avatarURL()
         : toonAvatar.generate_avatar()
@@ -93,17 +93,17 @@ const confirmInvalidAnswer = async function (message, latestQuestion) {
   ];
 };
 
-const updatePoints = async function (message, points) {
+const updatePoints = async function (messageUserId, points) {
   const userRequest = await axios({
     method: "GET",
-    url: `${process.env.BASE_URL}users/${message.author.id}`,
+    url: `${process.env.BASE_URL}users/${messageUserId}`,
   });
   const user = await userRequest.data.data.data;
-  console.log(user.totalPoints >= Math.abs(points));
+
   if (user.totalPoints >= Math.abs(points) || points > 0) {
     await axios({
       method: "PATCH",
-      url: `${process.env.BASE_URL}users/${message.author.id}`,
+      url: `${process.env.BASE_URL}users/${messageUserId}`,
       data: {
         totalPoints: user.totalPoints + points,
       },
@@ -113,16 +113,16 @@ const updatePoints = async function (message, points) {
 
 const onCorrectAnswer = function (message, latestQuestion) {
   saveAnswerToDB(message, "CORRECT", latestQuestion._id);
-  updatePoints(message, 5);
+  updatePoints(message.author.id, 5);
 };
 const onWrongAnswer = function (message, latestQuestion) {
   saveAnswerToDB(message, "WRONG", latestQuestion._id);
-  updatePoints(message, -1);
+  updatePoints(message.author.id, -1);
 };
 const onInvalidAnswer = function (message, latestQuestion) {
   saveAnswerToDB(message, "INVALID", latestQuestion._id);
   confirmInvalidAnswer(message, latestQuestion);
-  updatePoints(message, -2);
+  updatePoints(message.author.id, -2);
 };
 
 const answerInfo = async function (message, latestQuestion) {
@@ -230,10 +230,10 @@ exports.postAnswer = async function postAnswer(message) {
 };
 
 exports.checkReaction = async (reaction, user) => {
+  if (user.bot) return;
   const member = await reaction.message.guild.members.fetch(user.id);
 
   if (
-    !user.bot &&
     member.hasPermission("BAN_MEMBERS") &&
     reaction.message.channel.id === process.env.REACTION_CHANNEL_ID
   ) {
@@ -249,16 +249,17 @@ exports.checkReaction = async (reaction, user) => {
         },
       });
       // prettier-ignore
-      delete messagesList[reaction.message.id];
       reaction.message.delete();
     };
 
     if (reaction._emoji.id === process.env.CORRECT_EMOJI_ID) {
       confirmAnswerType("APPROVED");
-      updatePoints(reaction.message, 1);
+      updatePoints(messagesList[reaction.message.id][0], 1);
     }
 
-    if (reaction._emoji.id === process.env.WRONG_EMOJI_ID)
+    if (reaction._emoji.id === process.env.WRONG_EMOJI_ID) {
       confirmAnswerType("DENIED");
+    }
+    delete messagesList[reaction.message.id];
   }
 };
