@@ -99,8 +99,8 @@ const updatePoints = async function (message, points) {
     url: `${process.env.BASE_URL}users/${message.author.id}`,
   });
   const user = await userRequest.data.data.data;
-
-  if (user.totalPoints >= Math.abs(points)) {
+  console.log(user.totalPoints >= Math.abs(points));
+  if (user.totalPoints >= Math.abs(points) || points > 0) {
     await axios({
       method: "PATCH",
       url: `${process.env.BASE_URL}users/${message.author.id}`,
