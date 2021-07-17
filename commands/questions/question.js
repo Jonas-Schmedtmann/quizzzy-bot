@@ -9,7 +9,7 @@ module.exports = class AddCommand extends Commando.Command {
       memberName: "question",
       description: "Post the previous message as a new question",
       argsType: "multiple",
-      userPermissions: ["MANAGE_ROLES"],
+      userPermissions: ["MANAGE_MESSAGES"],
       format: "question",
       guildOnly: true,
     });
