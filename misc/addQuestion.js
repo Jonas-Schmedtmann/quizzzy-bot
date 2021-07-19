@@ -16,6 +16,8 @@ module.exports = async function (message, client) {
   const userId = message.author.id;
   const channelId = message.channel.id;
 
+  let post;
+
   const send = (msg) => message.channel.send(msg);
 
   class Question {
@@ -29,28 +31,37 @@ module.exports = async function (message, client) {
       this.questions.push(...questions);
     }
 
-    askQuestion(prevReply = null) {
-      const command = this.checkCommand(prevReply);
-      // console.log(command);
-      if (!command) {
+    async askQuestion(prevMessage = null) {
+      let reply = prevMessage !== null ? prevMessage.content.trim() : null;
+      const command = this.checkCommand(reply);
+      if (command === "CANCEL") return;
+
+      const validate = this.validateReply(prevMessage);
+
+      if (!command || !validate) {
         this.currentQuestion--;
         return this.askQuestion();
       }
 
       if (this.currentQuestion < this.questions.length) {
-        this.replies.push(prevReply);
+        const curQuestion = this.questions[this.currentQuestion];
 
-        if (prevReply) {
-          send(
-            `\`${prevReply}\`\n${this.questions[this.currentQuestion].question}`
-          );
-        } else {
-          send(this.questions[this.currentQuestion].question);
+        if (this.questions[this.currentQuestion - 1]?.type === "IMAGE") {
+          const attachments = prevMessage?.attachments?.values();
+          if (!attachments) {
+            reply = "skip";
+          } else {
+            reply = Array.from(attachments)[0]?.url || "skip";
+          }
         }
-        console.log("command", command);
-        if (command) this.currentQuestion++;
+
+        send(`**${curQuestion.question}**`);
+        if (reply) this.replies.push(reply);
+
+        if (command && validate) this.currentQuestion++;
       } else {
-        this.save();
+        this.replies.push(reply);
+        await this.save();
       }
     }
 
@@ -61,8 +72,9 @@ module.exports = async function (message, client) {
       switch (commandMsg.trim().toLowerCase()) {
         case "cancel":
           this.message("ERROR", "Question creating has been cancelled!");
+          // send()
           this.reset();
-          return true;
+          return "CANCEL";
 
         case "skip":
           if (curQuestion.optional) {
@@ -77,12 +89,17 @@ module.exports = async function (message, client) {
       return true;
     }
 
-    validateReply(reply) {
+    validateReply(replyMessage) {
+      const reply = replyMessage !== null ? replyMessage.content.trim() : null;
+
+      if (reply === null) return true;
       const curQuestion = this.questions[this.currentQuestion - 1];
 
-      if (!curQuestion.validate(reply)) {
+      if (!curQuestion.validate.call(this, reply, replyMessage)) {
         this.message("ERROR", curQuestion.validationError);
+        return false;
       }
+      return true;
     }
 
     onReplies(msg) {
@@ -91,22 +108,175 @@ module.exports = async function (message, client) {
         msg.author.id === userId &&
         !msg.author.bot
       ) {
-        const reply = msg.content.trim();
-        question.askQuestion(reply);
+        // const reply = msg.content.trim();
+        question.askQuestion(msg);
       }
     }
 
-    save() {
-      console.log("ON SAVE 👇👇");
-      console.log(this.replies);
-      send("─".repeat(97));
-      this.reset();
+    async confirmQuestion(
+      title,
+      description,
+      options,
+      questionNo,
+      imageURL,
+      message
+    ) {
+      const [questionEmbed, answerEmbed] = await generateQuestion(
+        title,
+        description,
+        options,
+        questionNo,
+        imageURL,
+        message
+      );
+
+      this.questionEmbed = questionEmbed;
+      this.answerEmbed = answerEmbed;
+
+      const button = new MessageButton()
+        .setStyle("green")
+        .setLabel("Add Question")
+        .setEmoji(process.env.CORRECT_EMOJI_ID)
+        .setID("add_question");
+
+      const button2 = new MessageButton()
+        .setStyle("red")
+        .setLabel("Cancel")
+        .setEmoji(process.env.WRONG_EMOJI_ID)
+        .setID("remove_question");
+
+      const row = new MessageActionRow().addComponents(button, button2);
+      // Confirm Message
+      this.confirmAnswerMessage = await message.channel.send(
+        "👇 This is how the answer of the last question will look like, are u happy with it?",
+        answerEmbed
+      );
+      this.confirmMessage = await message.channel.send(
+        "👇 This is how the question will look, are u happy with it?",
+        questionEmbed
+      );
+      this.buttonsMessage = await message.channel.send("﹏", row);
     }
 
-    message(type, message) {
+    async save() {
+      console.log("ON SAVE 👇👇");
+      let [
+        title,
+        description,
+        optionsString,
+        answerOption,
+        imageURL,
+        explanation,
+      ] = [...this.replies];
+
+      if (description === "skip") description = null;
+      if (imageURL === "skip") imageURL = null;
+
+      const options = optionsString
+        .split("\n")
+        .map((opt) => opt.trim())
+        .filter((option) => option !== "");
+
+      post = {
+        question: title,
+        options: options,
+        correctOption: answerOption,
+        userId: userId,
+        questionNo: (await getQuestionCount()) + 1,
+        explanation: explanation,
+      };
+
+      if (imageURL) post.image = imageURL;
+      if (description) post.description = description;
+
+      console.log(post);
+
+      const confirmDescription = post?.description || "";
+      const image = post?.image || null;
+
+      await this.confirmQuestion(
+        post.question,
+        confirmDescription,
+        post.options,
+        post.questionNo,
+        image,
+        message
+      );
+
+      message.client.on(
+        "clickButton",
+        this.confirmQuestionButtonHandler.bind(this)
+      );
+    }
+
+    async confirmQuestionButtonHandler({ id, message, clicker, reply }) {
+      const { user, member } = clicker;
+      if (
+        !user.bot &&
+        user.id === userId &&
+        member.hasPermission("MANAGE_ROLES")
+      ) {
+        const deleteMessages = async (msg, sec = 3) => {
+          const infoMessage = await reply.send(msg);
+          this.confirmAnswerMessage.delete();
+          this.confirmMessage.delete();
+          this.buttonsMessage.delete();
+
+          setTimeout(() => {
+            infoMessage.delete();
+          }, sec * 1000);
+        };
+
+        // Add the question
+        if (id === "add_question") {
+          await axios({
+            method: "POST",
+            url: `${process.env.BASE_URL}questions`,
+            data: post,
+          });
+
+          // Show final message
+          await message.client.channels.cache
+            .get(process.env.QUESTION_CHANNEL_ID)
+            .send(`<@&${process.env.TRIVIA_ROLE_ID}>`, this.answerEmbed);
+          await message.client.channels.cache
+            .get(process.env.QUESTION_CHANNEL_ID)
+            .send(this.questionEmbed);
+
+          await deleteMessages("https://i.stack.imgur.com/KZiub.gif");
+
+          send(
+            new Discord.MessageEmbed()
+              .setTitle(
+                `Question has been successfully posted in #${
+                  message.client.channels.cache.get(
+                    process.env.QUESTION_CHANNEL_ID
+                  ).name
+                }`
+              )
+              .setColor("#43b581")
+          );
+        }
+
+        // Delete the messages
+        if (id === "remove_question") {
+          deleteMessages("https://i.stack.imgur.com/dB8Ny.gif");
+          this.message("ERROR", "Question was removed.");
+        }
+        this.reset();
+      }
+    }
+
+    message(type, msg) {
+      const emoji = message.client.emojis.cache.get(
+        type === "ERROR"
+          ? process.env.WRONG_EMOJI_ID
+          : process.env.CORRECT_EMOJI_ID
+      );
+
       const embed = new Discord.MessageEmbed()
-        .setTitle(message)
-        .setColor(type === "ERROR" ? "#ff3733" : "#00ffac");
+        .setTitle(`${emoji}  ${msg}`)
+        .setColor(type === "ERROR" ? "#f04947" : "#43b581");
       send(embed);
     }
 
@@ -142,12 +312,11 @@ module.exports = async function (message, client) {
     },
     {
       question:
-        "Please enter the options for the question. Each should be on a different line and don't add the prefix. Example: **Correct** `option xyz` **Incorrect** `b) option xyz`",
+        "Please enter the options for the question. Each should be on a different line and don't add the prefix. Example: \nCorrect: `option xyz` \nIncorrect: `b) option xyz`",
       validate(reply) {
         const arr = reply.split("\n").map((opt) => opt.trim());
-
         return (
-          arr.each((opt) => opt.length < 1024) &&
+          arr.every((opt) => opt.length < 1024) &&
           arr.length >= 2 &&
           arr.length <= 12
         );
@@ -159,23 +328,31 @@ module.exports = async function (message, client) {
       question:
         "Please enter the correct option. Just enter the correct letter. Example: A.",
       validate(reply) {
-        return reply.trim().length === 1;
+        // prettier-ignore
+        const alphabets = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k","l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
+        return [...alphabets]
+          .splice(0, this.replies[this.replies.length - 1].split("\n").length)
+          .includes(reply.trim().toLowerCase());
       },
-      validationError: "Correct option should just be a letter, Example: A",
+      validationError:
+        "Correct option should just be a letter, Example: A. Also it should be a possible option.",
     },
     {
       question: "(OPTIONAL) Please add a image related to the question.",
+      type: "IMAGE",
       optional: true,
-      validate(reply) {
-        console.log("IMAGE: ", reply);
-        return true;
+      validate(reply, replyMessage) {
+        const image = Array.from(replyMessage.attachments.values())[0];
+        if (image?.url || replyMessage.content === "skip" || reply === null)
+          return true;
+        return false;
       },
-      validationError:
-        "Description is limited to 4096 characters, please reduce the text.",
+      validationError: "No image was posted, please add an image.",
     },
     {
       question: "Please enter the explanation for this question.",
       validate(reply) {
+        console.log(reply);
         return reply.length < 4096;
       },
       validationError:

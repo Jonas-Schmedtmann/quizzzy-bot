@@ -5,10 +5,11 @@ const toonAvatar = require("cartoon-avatar");
 const alphabets = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k","l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
 
 module.exports = async function (
-  content,
+  title,
+  description,
   options,
   questionNo,
-  image = undefined,
+  image = null,
   message
 ) {
   const fetchedQuestion = await axios({
@@ -26,9 +27,9 @@ module.exports = async function (
   });
 
   const questionEmbed = new Discord.MessageEmbed()
-    .setTitle(content)
+    .setTitle(title)
     .setDescription(
-      `Make sure to answer in <#${process.env.ANSWER_CHANNEL_ID}>, by just typing in the letter of the correct option.`
+      `${description} \n\n Make sure to answer in <#${process.env.ANSWER_CHANNEL_ID}>, by just typing in the letter of the correct option.`
     )
     .addFields(...optionsObj)
     .setAuthor(`Question Number #${questionNo}`)
