@@ -15,7 +15,7 @@ module.exports = class AddCommand extends Commando.Command {
     });
   }
 
-  async run(message, args) {
+  async run(message) {
     addQuestion(message, this.client);
   }
 };

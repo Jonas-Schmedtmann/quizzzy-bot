@@ -28,22 +28,28 @@ const client = new Commando.Client({
 
 require("discord-buttons")(client);
 
-client.on("ready", async () => {
-  console.log("===============================================");
-  console.log(`Logged in as ${client.user.tag}!`);
+try {
+  client.on("ready", async () => {
+    console.log("===============================================");
+    console.log(`Logged in as ${client.user.tag}!`);
 
-  client.registry
-    .registerGroups([
-      ["questions", "Commands related to questions."],
-      ["points", "Commands related to getting points."],
-      ["settings", "Commands related to bot settings."],
-    ])
-    .registerCommandsIn(path.join(__dirname, "commands"));
+    client.registry
+      .registerGroups([
+        ["questions", "Commands related to questions."],
+        ["points", "Commands related to getting points."],
+        ["settings", "Commands related to bot settings."],
+      ])
+      .registerCommandsIn(path.join(__dirname, "commands"));
 
-  client.commandPrefix = await getPrefix();
-});
+    client.commandPrefix = await getPrefix();
+  });
 
-client.on("message", postAnswer.postAnswer);
-client.on("messageReactionAdd", postAnswer.checkReaction);
+  client.on("message", postAnswer.postAnswer);
+  client.on("messageReactionAdd", postAnswer.checkReaction);
+} catch (err) {
+  console.log("💥💥💥💥💥💥💥💥💥💥");
+  console.log(err.msg);
+  console.log("💥💥💥💥💥💥💥💥💥💥");
+}
 
 client.login(process.env.BOT_TOKEN);
