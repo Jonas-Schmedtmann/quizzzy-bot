@@ -72,7 +72,6 @@ module.exports = async function (message, client) {
       switch (commandMsg.trim().toLowerCase()) {
         case "cancel":
           this.message("ERROR", "Question creating has been cancelled!");
-          // send()
           this.reset();
           return "CANCEL";
 
@@ -159,7 +158,6 @@ module.exports = async function (message, client) {
     }
 
     async save() {
-      console.log("ON SAVE 👇👇");
       let [
         title,
         description,
@@ -189,8 +187,6 @@ module.exports = async function (message, client) {
       if (imageURL) post.image = imageURL;
       if (description) post.description = description;
 
-      console.log(post);
-
       const confirmDescription = post?.description || "";
       const image = post?.image || null;
 
@@ -218,9 +214,9 @@ module.exports = async function (message, client) {
       ) {
         const deleteMessages = async (msg, sec = 3) => {
           const infoMessage = await reply.send(msg);
-          this.confirmAnswerMessage.delete();
-          this.confirmMessage.delete();
-          this.buttonsMessage.delete();
+          await this.confirmAnswerMessage.delete();
+          await this.confirmMessage.delete();
+          await this.buttonsMessage.delete();
 
           setTimeout(() => {
             infoMessage.delete();
@@ -260,7 +256,7 @@ module.exports = async function (message, client) {
 
         // Delete the messages
         if (id === "remove_question") {
-          deleteMessages("https://i.stack.imgur.com/dB8Ny.gif");
+          await deleteMessages("https://i.stack.imgur.com/dB8Ny.gif");
           this.message("ERROR", "Question was removed.");
         }
         this.reset();
@@ -286,7 +282,6 @@ module.exports = async function (message, client) {
       this.currentQuestion = 0;
 
       client.removeListener("message", question.onReplies);
-      console.log("😳 RESET 😳");
     }
   }
 
@@ -352,13 +347,23 @@ module.exports = async function (message, client) {
     {
       question: "Please enter the explanation for this question.",
       validate(reply) {
-        console.log(reply);
         return reply.length < 4096;
       },
       validationError:
         "Explanation is limited to 4096 characters, please reduce the text.",
     },
   ]);
+
+  const emoji = await message.client.emojis.cache.get(
+    process.env.CORRECT_EMOJI_ID
+  );
+  const embed = new Discord.MessageEmbed()
+    .setTitle(
+      `${emoji}  Answer the below questions to set the question for trivia. You can type \`cancel\` at any time to cancel question creation and you can type \`skip\` to skip optional questions.`
+    )
+    .setColor("#43b581");
+
+  await send(embed);
 
   question.askQuestion(null);
   client.on("message", question.onReplies);
