@@ -46,6 +46,40 @@ const saveAnswerToDB = async function (message, type, questionId) {
   });
 };
 
+// const createLogsEmbed = async (question, message) => {
+//   // prettier-ignore
+//   const alphabets = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k","l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
+//   const indexOfAnswer = alphabets.indexOf(question.correctOption);
+//   const correctOption = question.options[indexOfAnswer];
+
+//   const embed = new Discord.MessageEmbed()
+//     .setTitle(question.question)
+//     .addFields(
+//       {
+//         name: "Correct Answer",
+//         value: `${question.correctOption.toUpperCase()}) ${correctOption}`,
+//         inline: true,
+//       },
+//       {
+//         name: "User's Answer",
+//         value: message.content,
+//         inline: true,
+//       }
+//     )
+//     .setAuthor(`Question Number #${question.questionNo}`)
+//     .setFooter(
+//       `${message.author.username} (${message.author.id})`,
+//       message.author.avatarURL()
+//         ? message.author.avatarURL()
+//         : toonAvatar.generate_avatar()
+//     )
+//     .setColor("#f84343");
+
+//   await message.client.channels.cache
+//     .get(process.env.REACTION_CHANNEL_ID)
+//     .send(embed);
+// };
+
 const confirmInvalidAnswer = async function (message, latestQuestion) {
   // prettier-ignore
   const alphabets = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k","l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
