@@ -6,6 +6,7 @@ const axios = require("axios");
 const dotenv = require("dotenv");
 
 const postAnswer = require("./misc/postAnswer");
+const postHTMLAnswer = require("./misc/postHTMLAnswer");
 
 // Configuring dotenv
 dotenv.config({
@@ -45,6 +46,7 @@ try {
   });
 
   client.on("message", postAnswer.postAnswer);
+  client.on("message", postHTMLAnswer.postHTMLAnswer);
   client.on("messageReactionAdd", postAnswer.checkReaction);
 } catch (err) {
   console.log("💥💥💥💥💥💥💥💥💥💥");
