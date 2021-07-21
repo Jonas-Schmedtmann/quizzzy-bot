@@ -1,5 +1,6 @@
 const Discord = require("discord.js");
 const Commando = require("discord.js-commando");
+const config = require("./../../config");
 
 module.exports = class AddCommand extends Commando.Command {
   constructor(client) {
@@ -33,14 +34,14 @@ module.exports = class AddCommand extends Commando.Command {
           name: [command.name, ...command.aliases]
             .map((c) => `${prefix}${c}`)
             .join(" | "),
-          value: `${command.description}\n\`${prefix}${command.format}\``,
+          value: `${command.description}\n**Format:** \`${prefix}${command.format}\``,
         };
       });
 
     const embed = new Discord.MessageEmbed()
       .setTitle("Help")
       .addFields(...fields)
-      .setColor("#31b985");
+      .setColor(config.SUCCESS_COLOR);
 
     try {
       await message.author.send(embed);

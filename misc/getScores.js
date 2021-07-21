@@ -1,5 +1,6 @@
 const Discord = require("discord.js");
 const axios = require("axios");
+const config = require("../config");
 
 module.exports = async function showPoints(message, page) {
   const getCount = await axios({
@@ -88,7 +89,7 @@ ${bottomStr}`;
 ${strArr.join("\n")}
 \`\`\``,
     })
-    .setColor("#00bcd4");
+    .setColor(config.WARNING_COLOR);
 
   message.channel.send(embed);
 };

@@ -1,10 +1,9 @@
 const Discord = require("discord.js");
 const axios = require("axios");
 const toonAvatar = require("cartoon-avatar");
+const config = require("../config");
 
 let latestQuestion;
-
-const messagesList = {};
 
 const restrictedUser = function (message) {
   if (message.author.bot) return true;
@@ -14,6 +13,7 @@ const restrictedUser = function (message) {
     "BAN_MEMBERS",
     "MANAGE_CHANNELS",
     "MENTION_EVERYONE",
+    "MANAGE_MESSAGES",
   ].some((flag) => message.member.hasPermission(flag));
 };
 
@@ -45,17 +45,19 @@ const saveAnswerToDB = async function (message, questionId) {
   });
 };
 
-const confirmAnswer = async function (message, latestQuestion) {
+const HTMLAnswerEmbedLog = async function (message, latestQuestion) {
   const embed = new Discord.MessageEmbed()
     .setTitle(`HTML Question Number #${latestQuestion.questionNo}`)
-    .setDescription(`**User's Answer:** \n${message.content}`)
+    .setDescription(
+      `-------\n\n**User's Answer:** ${message.content}\n\n-------`
+    )
     .setFooter(
       `${message.author.username} (${message.author.id})`,
       message.author.avatarURL()
         ? message.author.avatarURL()
         : toonAvatar.generate_avatar()
     )
-    .setColor("#f84343");
+    .setColor(config.WARNING_COLOR);
 
   await message.client.channels.cache
     .get(process.env.REACTION_CHANNEL_ID)
@@ -77,7 +79,6 @@ const checks = async function (message, latestQuestion) {
 
   const ifAnswered = ifAnsweredReq.data.data;
   const conditions = [restrictedUser(message), message.author.bot, ifAnswered];
-  // console.log(conditions);
   return conditions.some((check) => check === true);
 };
 
@@ -93,7 +94,7 @@ exports.postHTMLAnswer = async function postHTMLAnswer(message) {
 
     const embed = new Discord.MessageEmbed()
       .setTitle(`Your answer has been recorded! 😃`)
-      .setColor("#faa61a");
+      .setColor(config.SUCCESS_COLOR);
 
     const answerRecivedMessage = await message.reply("\\🎉", embed);
 
@@ -114,7 +115,7 @@ exports.postHTMLAnswer = async function postHTMLAnswer(message) {
     if (!result.data.data) await createNewUser(message);
 
     saveAnswerToDB(message, latestQuestion._id);
-    confirmAnswer(message, latestQuestion);
+    HTMLAnswerEmbedLog(message, latestQuestion);
     message.delete();
   }
 };
