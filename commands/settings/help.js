@@ -34,7 +34,7 @@ module.exports = class AddCommand extends Commando.Command {
           name: [command.name, ...command.aliases]
             .map((c) => `${prefix}${c}`)
             .join(" | "),
-          value: `${command.description}\n**Format:** \`${prefix}${command.format}\``,
+          value: `${command.description}\n**Syntax:** \`${prefix}${command.format}\``,
         };
       });
 
