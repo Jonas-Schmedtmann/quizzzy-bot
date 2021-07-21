@@ -77,12 +77,10 @@ const createAnswerLogsEmbed = async (question, message, type) => {
       {
         name: "Correct Answer",
         value: `${question.correctOption.toUpperCase()}) ${correctOption}`,
-        inline: true,
       },
       {
         name: "User's Answer",
         value: message.content,
-        inline: true,
       }
     )
     .setAuthor(`Question Number #${question.questionNo}`)
