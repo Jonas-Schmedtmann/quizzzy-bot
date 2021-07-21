@@ -49,6 +49,22 @@ const saveAnswerToDB = async function (message, type, questionId) {
 };
 
 const createAnswerLogsEmbed = async (question, message, type) => {
+  let color;
+
+  switch (type) {
+    case "CORRECT":
+    case "APPROVED":
+      color = config.SUCCESS_COLOR;
+      break;
+    case "WRONG":
+    case "DENIED":
+      color = config.ERROR_COLOR;
+      break;
+    case "INVALID":
+      color = config.WARNING_COLOR;
+      break;
+  }
+
   // prettier-ignore
   const alphabets = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k","l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
   const indexOfAnswer = alphabets.indexOf(question.correctOption);
@@ -56,7 +72,7 @@ const createAnswerLogsEmbed = async (question, message, type) => {
 
   const embed = new Discord.MessageEmbed()
     .setTitle(question.question)
-    .setDescription(`Result: ${type}`)
+    .setDescription(`-------\n\n**Result:** ${type}\n\n-------`)
     .addFields(
       {
         name: "Correct Answer",
@@ -76,71 +92,34 @@ const createAnswerLogsEmbed = async (question, message, type) => {
         ? message.author.avatarURL()
         : toonAvatar.generate_avatar()
     )
-    .setColor(config.SUCCESS_COLOR);
+    .setColor(color);
 
-  await message.client.channels.cache
+  const answerEmbed = await message.client.channels.cache
     .get(process.env.REACTION_CHANNEL_ID)
     .send(embed);
-};
 
-const confirmInvalidAnswer = async function (message, latestQuestion) {
-  // prettier-ignore
-  const alphabets = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k","l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
-  const indexOfAnswer = alphabets.indexOf(latestQuestion.correctOption);
-  const correctOption = latestQuestion.options[indexOfAnswer];
-
-  const embed = new Discord.MessageEmbed()
-    .setTitle(latestQuestion.question)
-    .addFields(
-      {
-        name: "Correct Answer",
-        value: `${latestQuestion.correctOption.toUpperCase()}) ${correctOption}`,
-        inline: true,
-      },
-      {
-        name: "User's Answer",
-        value: message.content,
-        inline: true,
+  if (type === "INVALID") {
+    [process.env.CORRECT_EMOJI_ID, process.env.WRONG_EMOJI_ID].forEach(
+      (emoji) => {
+        answerEmbed.react(answerEmbed.guild.emojis.cache.get(emoji));
       }
-    )
-    .setAuthor(`Question Number #${latestQuestion.questionNo}`)
-    .setFooter(
-      `${message.author.username} (${message.author.id})`,
-      message.author.avatarURL()
-        ? message.author.avatarURL()
-        : toonAvatar.generate_avatar()
-    )
-    .setColor(config.SUCCESS_COLOR);
+    );
 
-  const invalidMessageEmbed = await message.client.channels.cache
-    .get(process.env.REACTION_CHANNEL_ID)
-    .send(embed);
-
-  [process.env.CORRECT_EMOJI_ID, process.env.WRONG_EMOJI_ID].forEach(
-    (emoji) => {
-      invalidMessageEmbed.react(
-        invalidMessageEmbed.guild.emojis.cache.get(emoji)
-      );
-    }
-  );
-
-  messagesList[invalidMessageEmbed.id] = [
-    message.author.id,
-    latestQuestion._id,
-  ];
+    messagesList[answerEmbed.id] = [message.author.id, question._id];
+  }
 };
 
-const updatePoints = async function (message, points) {
+const updatePoints = async function (userId, points) {
   const userRequest = await axios({
     method: "GET",
-    url: `${process.env.BASE_URL}users/${message.author.id}`,
+    url: `${process.env.BASE_URL}users/${userId}`,
   });
   const user = await userRequest.data.data.data;
 
   if (user.totalPoints >= Math.abs(points)) {
     await axios({
       method: "PATCH",
-      url: `${process.env.BASE_URL}users/${message.author.id}`,
+      url: `${process.env.BASE_URL}users/${userId}`,
       data: {
         totalPoints: user.totalPoints + points,
       },
@@ -152,19 +131,19 @@ const onCorrectAnswer = function (message, latestQuestion) {
   const type = "CORRECT";
   saveAnswerToDB(message, type, latestQuestion._id);
   createAnswerLogsEmbed(latestQuestion, message, type);
-  updatePoints(message, 5);
+  updatePoints(message.author.id, 5);
 };
 const onWrongAnswer = function (message, latestQuestion) {
   const type = "WRONG";
   saveAnswerToDB(message, type, latestQuestion._id);
   createAnswerLogsEmbed(latestQuestion, message, type);
-  updatePoints(message, -1);
+  updatePoints(message.author.id, -1);
 };
 const onInvalidAnswer = function (message, latestQuestion) {
   const type = "INVALID";
   saveAnswerToDB(message, type, latestQuestion._id);
-  confirmInvalidAnswer(message, latestQuestion);
-  updatePoints(message, -2);
+  createAnswerLogsEmbed(latestQuestion, message, type);
+  updatePoints(message.author.id, -2);
 };
 
 const answerInfo = async function (message, latestQuestion) {
@@ -279,9 +258,10 @@ exports.checkReaction = async (reaction, user) => {
     member.hasPermission("BAN_MEMBERS") &&
     reaction.message.channel.id === process.env.REACTION_CHANNEL_ID
   ) {
-    const confirmAnswerType = async function (type) {
-      const messageData = messagesList[reaction.message.id];
+    const messageData = messagesList[reaction.message.id];
+    if (!messageData) return;
 
+    const confirmAnswerType = async function (type) {
       await axios({
         method: "PATCH",
         url: `${process.env.BASE_URL}answers/${messageData[0]}/${messageData[1]}`,
@@ -290,17 +270,29 @@ exports.checkReaction = async (reaction, user) => {
           checkedBy: user.id,
         },
       });
+
       // prettier-ignore
       delete messagesList[reaction.message.id];
-      reaction.message.delete();
+    };
+    const embed = reaction.message.embeds[0];
+
+    const editMessage = (type) => {
+      embed.description = `-------\n\n**Result:** ${type} \n**Checked By:** ${member.displayName} *(${member.id})*\n\n-------`;
+      reaction.message.edit(embed);
+      reaction.message.reactions.removeAll();
     };
 
     if (reaction._emoji.id === process.env.CORRECT_EMOJI_ID) {
-      confirmAnswerType("APPROVED");
-      updatePoints(reaction.message, 1);
+      const type = "APPROVED";
+      editMessage(type);
+      updatePoints(messageData[0], 1);
+      confirmAnswerType(type);
     }
 
-    if (reaction._emoji.id === process.env.WRONG_EMOJI_ID)
-      confirmAnswerType("DENIED");
+    if (reaction._emoji.id === process.env.WRONG_EMOJI_ID) {
+      const type = "DENIED";
+      editMessage(type);
+      confirmAnswerType(type);
+    }
   }
 };

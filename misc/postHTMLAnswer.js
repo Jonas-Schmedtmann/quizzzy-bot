@@ -45,10 +45,12 @@ const saveAnswerToDB = async function (message, questionId) {
   });
 };
 
-const confirmAnswer = async function (message, latestQuestion) {
+const HTMLAnswerEmbedLog = async function (message, latestQuestion) {
   const embed = new Discord.MessageEmbed()
     .setTitle(`HTML Question Number #${latestQuestion.questionNo}`)
-    .setDescription(`**User's Answer:** \n${message.content}`)
+    .setDescription(
+      `-------\n\n**User's Answer:** ${message.content}\n\n-------`
+    )
     .setFooter(
       `${message.author.username} (${message.author.id})`,
       message.author.avatarURL()
@@ -113,7 +115,7 @@ exports.postHTMLAnswer = async function postHTMLAnswer(message) {
     if (!result.data.data) await createNewUser(message);
 
     saveAnswerToDB(message, latestQuestion._id);
-    confirmAnswer(message, latestQuestion);
+    HTMLAnswerEmbedLog(message, latestQuestion);
     message.delete();
   }
 };
