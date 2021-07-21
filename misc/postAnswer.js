@@ -1,6 +1,7 @@
 const Discord = require("discord.js");
 const axios = require("axios");
 const toonAvatar = require("cartoon-avatar");
+const config = require("../config");
 
 let latestQuestion;
 
@@ -14,6 +15,7 @@ const restrictedUser = function (message) {
     "BAN_MEMBERS",
     "MANAGE_CHANNELS",
     "MENTION_EVERYONE",
+    "MANAGE_MESSAGES",
   ].some((flag) => message.member.hasPermission(flag));
 };
 
@@ -46,39 +48,40 @@ const saveAnswerToDB = async function (message, type, questionId) {
   });
 };
 
-// const createLogsEmbed = async (question, message) => {
-//   // prettier-ignore
-//   const alphabets = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k","l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
-//   const indexOfAnswer = alphabets.indexOf(question.correctOption);
-//   const correctOption = question.options[indexOfAnswer];
+const createAnswerLogsEmbed = async (question, message, type) => {
+  // prettier-ignore
+  const alphabets = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k","l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
+  const indexOfAnswer = alphabets.indexOf(question.correctOption);
+  const correctOption = question.options[indexOfAnswer];
 
-//   const embed = new Discord.MessageEmbed()
-//     .setTitle(question.question)
-//     .addFields(
-//       {
-//         name: "Correct Answer",
-//         value: `${question.correctOption.toUpperCase()}) ${correctOption}`,
-//         inline: true,
-//       },
-//       {
-//         name: "User's Answer",
-//         value: message.content,
-//         inline: true,
-//       }
-//     )
-//     .setAuthor(`Question Number #${question.questionNo}`)
-//     .setFooter(
-//       `${message.author.username} (${message.author.id})`,
-//       message.author.avatarURL()
-//         ? message.author.avatarURL()
-//         : toonAvatar.generate_avatar()
-//     )
-//     .setColor("#f84343");
+  const embed = new Discord.MessageEmbed()
+    .setTitle(question.question)
+    .setDescription(`Result: ${type}`)
+    .addFields(
+      {
+        name: "Correct Answer",
+        value: `${question.correctOption.toUpperCase()}) ${correctOption}`,
+        inline: true,
+      },
+      {
+        name: "User's Answer",
+        value: message.content,
+        inline: true,
+      }
+    )
+    .setAuthor(`Question Number #${question.questionNo}`)
+    .setFooter(
+      `${message.author.username} (${message.author.id})`,
+      message.author.avatarURL()
+        ? message.author.avatarURL()
+        : toonAvatar.generate_avatar()
+    )
+    .setColor(config.SUCCESS_COLOR);
 
-//   await message.client.channels.cache
-//     .get(process.env.REACTION_CHANNEL_ID)
-//     .send(embed);
-// };
+  await message.client.channels.cache
+    .get(process.env.REACTION_CHANNEL_ID)
+    .send(embed);
+};
 
 const confirmInvalidAnswer = async function (message, latestQuestion) {
   // prettier-ignore
@@ -107,7 +110,7 @@ const confirmInvalidAnswer = async function (message, latestQuestion) {
         ? message.author.avatarURL()
         : toonAvatar.generate_avatar()
     )
-    .setColor("#f84343");
+    .setColor(config.SUCCESS_COLOR);
 
   const invalidMessageEmbed = await message.client.channels.cache
     .get(process.env.REACTION_CHANNEL_ID)
@@ -146,15 +149,20 @@ const updatePoints = async function (message, points) {
 };
 
 const onCorrectAnswer = function (message, latestQuestion) {
-  saveAnswerToDB(message, "CORRECT", latestQuestion._id);
+  const type = "CORRECT";
+  saveAnswerToDB(message, type, latestQuestion._id);
+  createAnswerLogsEmbed(latestQuestion, message, type);
   updatePoints(message, 5);
 };
 const onWrongAnswer = function (message, latestQuestion) {
-  saveAnswerToDB(message, "WRONG", latestQuestion._id);
+  const type = "WRONG";
+  saveAnswerToDB(message, type, latestQuestion._id);
+  createAnswerLogsEmbed(latestQuestion, message, type);
   updatePoints(message, -1);
 };
 const onInvalidAnswer = function (message, latestQuestion) {
-  saveAnswerToDB(message, "INVALID", latestQuestion._id);
+  const type = "INVALID";
+  saveAnswerToDB(message, type, latestQuestion._id);
   confirmInvalidAnswer(message, latestQuestion);
   updatePoints(message, -2);
 };
@@ -238,7 +246,7 @@ exports.postAnswer = async function postAnswer(message) {
 
     const embed = new Discord.MessageEmbed()
       .setTitle(`Your answer has been recorded! 😃`)
-      .setColor("#faa61a");
+      .setColor(config.SUCCESS_COLOR);
 
     const answerRecivedMessage = await message.reply("\\🎉", embed);
 

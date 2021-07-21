@@ -2,6 +2,7 @@ const Discord = require("discord.js");
 const generateQuestion = require("./generateQuestion");
 const axios = require("axios");
 const { MessageButton, MessageActionRow } = require("discord-buttons");
+const config = require("../config");
 
 const getQuestionCount = async () => {
   const res = await axios({
@@ -250,7 +251,7 @@ module.exports = async function (message, client) {
                   ).name
                 }`
               )
-              .setColor("#43b581")
+              .setColor(config.SUCCESS_COLOR)
           );
         }
 
@@ -272,7 +273,7 @@ module.exports = async function (message, client) {
 
       const embed = new Discord.MessageEmbed()
         .setTitle(`${emoji}  ${msg}`)
-        .setColor(type === "ERROR" ? "#f04947" : "#43b581");
+        .setColor(type === "ERROR" ? config.ERROR_COLOR : config.SUCCESS_COLOR);
       send(embed);
     }
 
@@ -361,7 +362,7 @@ module.exports = async function (message, client) {
     .setTitle(
       `${emoji}  Answer the below questions to set the question for trivia. You can type \`cancel\` at any time to cancel question creation and you can type \`skip\` to skip optional questions.`
     )
-    .setColor("#43b581");
+    .setColor(config.WARNING_COLOR);
 
   await send(embed);
 

@@ -1,6 +1,7 @@
 const Discord = require("discord.js");
 const axios = require("axios");
 const toonAvatar = require("cartoon-avatar");
+const config = require("../config");
 // prettier-ignore
 const alphabets = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k","l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"];
 
@@ -39,7 +40,7 @@ module.exports = async function (
         ? message.author.avatarURL()
         : toonAvatar.generate_avatar()
     )
-    .setColor("#31b985");
+    .setColor(config.SUCCESS_COLOR);
 
   if (image) {
     questionEmbed.setImage(image);
@@ -48,7 +49,7 @@ module.exports = async function (
   const answerEmbed = new Discord.MessageEmbed()
     .setTitle(`Answer of question #${questionNo - 1}`)
     .setDescription(latestQuestion.explanation)
-    .setColor("#31b985");
+    .setColor(config.SUCCESS_COLOR);
 
   return [questionEmbed, answerEmbed];
 };

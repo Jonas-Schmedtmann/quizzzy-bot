@@ -7,9 +7,9 @@ module.exports = class AddCommand extends Commando.Command {
       aliases: ["que", "q"],
       group: "questions",
       memberName: "question",
-      description: "Post the previous message as a new question",
+      description: "Post a new Trivia question",
       argsType: "multiple",
-      userPermissions: ["MANAGE_ROLES"],
+      userPermissions: ["MANAGE_MESSAGES"],
       format: "question",
       guildOnly: true,
     });

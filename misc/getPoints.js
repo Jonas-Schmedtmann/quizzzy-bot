@@ -1,5 +1,6 @@
 const Discord = require("discord.js");
 const axios = require("axios");
+const config = require("../config");
 
 module.exports = async function getScore(identity) {
   const id = identity.startsWith("<@!") ? identity.slice(3, -1) : identity;
@@ -26,7 +27,7 @@ module.exports = async function getScore(identity) {
       .setAuthor(`${name}`)
       .setTitle(`Total Points: ${data.totalPoints}`)
       .setThumbnail(data.photo)
-      .setColor("#faa61a");
+      .setColor(config.WARNING_COLOR);
 
     return embed;
   } else {

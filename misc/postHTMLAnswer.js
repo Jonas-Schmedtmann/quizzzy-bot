@@ -1,10 +1,9 @@
 const Discord = require("discord.js");
 const axios = require("axios");
 const toonAvatar = require("cartoon-avatar");
+const config = require("../config");
 
 let latestQuestion;
-
-const messagesList = {};
 
 const restrictedUser = function (message) {
   if (message.author.bot) return true;
@@ -14,6 +13,7 @@ const restrictedUser = function (message) {
     "BAN_MEMBERS",
     "MANAGE_CHANNELS",
     "MENTION_EVERYONE",
+    "MANAGE_MESSAGES",
   ].some((flag) => message.member.hasPermission(flag));
 };
 
@@ -55,7 +55,7 @@ const confirmAnswer = async function (message, latestQuestion) {
         ? message.author.avatarURL()
         : toonAvatar.generate_avatar()
     )
-    .setColor("#f84343");
+    .setColor(config.WARNING_COLOR);
 
   await message.client.channels.cache
     .get(process.env.REACTION_CHANNEL_ID)
@@ -77,7 +77,6 @@ const checks = async function (message, latestQuestion) {
 
   const ifAnswered = ifAnsweredReq.data.data;
   const conditions = [restrictedUser(message), message.author.bot, ifAnswered];
-  // console.log(conditions);
   return conditions.some((check) => check === true);
 };
 
@@ -93,7 +92,7 @@ exports.postHTMLAnswer = async function postHTMLAnswer(message) {
 
     const embed = new Discord.MessageEmbed()
       .setTitle(`Your answer has been recorded! 😃`)
-      .setColor("#faa61a");
+      .setColor(config.SUCCESS_COLOR);
 
     const answerRecivedMessage = await message.reply("\\🎉", embed);
 

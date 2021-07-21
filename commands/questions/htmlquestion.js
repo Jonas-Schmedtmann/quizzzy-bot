@@ -10,8 +10,8 @@ module.exports = class AddCommand extends Commando.Command {
       memberName: "htmlquestion",
       description: "Post a new HTML question",
       argsType: "multiple",
-      userPermissions: ["MANAGE_ROLES"],
-      format: "question",
+      userPermissions: ["MANAGE_MESSAGES"],
+      format: "htmlquestion",
       guildOnly: true,
     });
   }

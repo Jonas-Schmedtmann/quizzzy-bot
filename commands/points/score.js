@@ -10,7 +10,7 @@ module.exports = class AddCommand extends Commando.Command {
       memberName: "scores",
       description: "Display's the scoreboard from highest to lowest.",
       argsType: "multiple",
-      userPermissions: ["MANAGE_ROLES"],
+      userPermissions: ["MANAGE_MESSAGES"],
       format: "scores [page no]",
       guildOnly: true,
     });

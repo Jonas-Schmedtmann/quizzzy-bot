@@ -1,5 +1,6 @@
 const Discord = require("discord.js");
 const toonAvatar = require("cartoon-avatar");
+const config = require("../config");
 
 module.exports = async function (
   title,
@@ -20,7 +21,7 @@ module.exports = async function (
         ? message.author.avatarURL()
         : toonAvatar.generate_avatar()
     )
-    .setColor("#31b985");
+    .setColor(config.SUCCESS_COLOR);
 
   if (image) {
     questionEmbed.setImage(image);

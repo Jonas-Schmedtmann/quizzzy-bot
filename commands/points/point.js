@@ -11,7 +11,6 @@ module.exports = class AddCommand extends Commando.Command {
       description: "Display's the points of a user.",
       argsType: "multiple",
       format: "points [user id]",
-      guildOnly: true,
     });
   }
 
