@@ -20,20 +20,19 @@ module.exports = class AddCommand extends Commando.Command {
         (typeof num === "string" && num.trim() !== "")) &&
       !isNaN(num);
 
-    let id;
-
     if (args.length === 0) {
-      id = message.author.id;
+      const id = message.author.id;
+      const embed = await getPoints(id);
+      return message.channel.send(embed);
     }
 
     if (
       (isNumeric(args[0]) && args[0].length === 18) ||
       args[0].length === 22
     ) {
-      id = args[0];
+      const id = args[0];
+      const embed = await getPoints(id);
+      return message.channel.send(embed);
     }
-
-    const embed = await getPoints(args[0]);
-    return message.channel.send(embed);
   }
 };
