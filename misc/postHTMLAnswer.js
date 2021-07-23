@@ -60,7 +60,7 @@ const HTMLAnswerEmbedLog = async function (message, latestQuestion) {
     .setColor(config.WARNING_COLOR);
 
   await message.client.channels.cache
-    .get(process.env.REACTION_CHANNEL_ID)
+    .get(process.env.HTML_LOGS_CHANNEL_ID)
     .send(embed);
 };
 

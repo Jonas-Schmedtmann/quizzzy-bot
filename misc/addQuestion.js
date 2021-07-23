@@ -44,7 +44,10 @@ module.exports = async function (message, client) {
         return this.askQuestion();
       }
 
+      console.log(reply, command, this.currentQuestion < this.questions.length);
+
       if (this.currentQuestion < this.questions.length) {
+        console.log("== 1 ==");
         const curQuestion = this.questions[this.currentQuestion];
 
         if (this.questions[this.currentQuestion - 1]?.type === "IMAGE") {
@@ -61,7 +64,9 @@ module.exports = async function (message, client) {
 
         if (command && validate) this.currentQuestion++;
       } else {
+        console.log("== 2 ==");
         this.replies.push(reply);
+        client.removeListener("message", question.onReplies);
         await this.save();
       }
     }
@@ -281,8 +286,6 @@ module.exports = async function (message, client) {
       this.questions = [];
       this.replies = [];
       this.currentQuestion = 0;
-
-      client.removeListener("message", question.onReplies);
     }
   }
 

@@ -93,7 +93,7 @@ const createAnswerLogsEmbed = async (question, message, type) => {
     .setColor(color);
 
   const answerEmbed = await message.client.channels.cache
-    .get(process.env.REACTION_CHANNEL_ID)
+    .get(process.env.TRIVIA_LOGS_CHANNEL_ID)
     .send(embed);
 
   if (type === "INVALID") {
@@ -253,8 +253,9 @@ exports.checkReaction = async (reaction, user) => {
   const member = await reaction.message.guild.members.fetch(user.id);
 
   if (
-    member.hasPermission("BAN_MEMBERS") &&
-    reaction.message.channel.id === process.env.REACTION_CHANNEL_ID
+    !user.bot &&
+    member.hasPermission("MANAGE_MESSAGES") &&
+    reaction.message.channel.id === process.env.TRIVIA_LOGS_CHANNEL_ID
   ) {
     const messageData = messagesList[reaction.message.id];
     if (!messageData) return;

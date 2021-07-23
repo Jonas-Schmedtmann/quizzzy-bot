@@ -168,7 +168,7 @@ module.exports = async function (message, client) {
       if (
         !user.bot &&
         user.id === userId &&
-        member.hasPermission("MANAGE_ROLES")
+        member.hasPermission("MANAGE_MESSAGES")
       ) {
         const deleteMessages = async (msg, sec = 3) => {
           const infoMessage = await reply.send(msg);

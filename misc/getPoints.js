@@ -5,32 +5,30 @@ const config = require("../config");
 module.exports = async function getScore(identity) {
   const id = identity.startsWith("<@!") ? identity.slice(3, -1) : identity;
 
-  const userExists = await axios({
+  const usersReq = await axios({
     method: "GET",
-    url: `${process.env.BASE_URL}users/check/${id}`,
+    url: `${process.env.BASE_URL}users/?sort=-totalPoints&limit=500`,
   });
+  const users = usersReq.data.data.data;
 
-  if (userExists.data.data) {
-    const res = await axios({
-      method: "GET",
-      url: `${process.env.BASE_URL}users/${id}`,
-    });
+  const userIndex = users.findIndex((userObj) => userObj.userId === id);
+  const user = users[userIndex];
 
-    const data = res.data.data.data;
-
-    const splitTag = data.tag.split("#");
-    splitTag.splice(-1, 1);
-
-    const name = splitTag.join("#");
-
-    const embed = new Discord.MessageEmbed()
-      .setAuthor(`${name}`)
-      .setTitle(`Total Points: ${data.totalPoints}`)
-      .setThumbnail(data.photo)
-      .setColor(config.WARNING_COLOR);
-
-    return embed;
-  } else {
-    return `<@!${id}> does not exsits as they have not answered any questions yet, try with another user.`;
+  if (!user) {
+    return `<@${id}> does not exists as they have not answered any questions yet, try with another user.`;
   }
+
+  const splitTag = user.tag.split("#");
+  splitTag.splice(-1, 1);
+
+  const name = splitTag.join("#");
+
+  const embed = new Discord.MessageEmbed()
+    .setAuthor(`${name}`)
+    .setTitle(`Total Points: ${user.totalPoints}`)
+    .setDescription(`**Rank:** ${userIndex + 1}`)
+    .setThumbnail(user.photo)
+    .setColor(config.WARNING_COLOR);
+
+  return embed;
 };

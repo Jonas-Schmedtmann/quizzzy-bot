@@ -65,7 +65,7 @@ module.exports = async function showPoints(message, page) {
       )}╦${`═`.repeat(8)}╗`;
 
       str = `${topStr}
-║ ${`Rank`.padEnd(5)}║ ${`Memeber`.padEnd(
+║ ${`Rank`.padEnd(5)}║ ${`Members`.padEnd(
         longestNameLength + 1,
         " "
       )} ║ ${`Points`.padEnd(6)} ║`;
