@@ -29,29 +29,28 @@ const client = new Commando.Client({
 
 require("discord-buttons")(client);
 
-try {
-  client.on("ready", async () => {
-    console.log("===============================================");
-    console.log(`Logged in as ${client.user.tag}!`);
+client.on("ready", async () => {
+  console.log("===============================================");
+  console.log(`Logged in as ${client.user.tag}!`);
 
-    client.registry
-      .registerGroups([
-        ["questions", "Commands related to questions."],
-        ["points", "Commands related to getting points."],
-        ["settings", "Commands related to bot settings."],
-      ])
-      .registerCommandsIn(path.join(__dirname, "commands"));
+  client.registry
+    .registerGroups([
+      ["questions", "Commands related to questions."],
+      ["users", "Commands related to users."],
+      ["points", "Commands related to points."],
+      ["settings", "Commands related to bot settings."],
+    ])
+    .registerCommandsIn(path.join(__dirname, "commands"));
 
-    client.commandPrefix = await getPrefix();
+  client.commandPrefix = await getPrefix();
+
+  client.user.setActivity("quizzes", {
+    type: "PLAYING",
   });
+});
 
-  client.on("message", postAnswer.postAnswer);
-  client.on("message", postHTMLAnswer.postHTMLAnswer);
-  client.on("messageReactionAdd", postAnswer.checkReaction);
-} catch (err) {
-  console.log("💥💥💥💥💥💥💥💥💥💥");
-  console.log(err.msg);
-  console.log("💥💥💥💥💥💥💥💥💥💥");
-}
+client.on("message", postAnswer.postAnswer);
+client.on("message", postHTMLAnswer.postHTMLAnswer);
+client.on("messageReactionAdd", postAnswer.checkReaction);
 
 client.login(process.env.BOT_TOKEN);

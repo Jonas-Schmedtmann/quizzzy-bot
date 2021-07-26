@@ -40,6 +40,7 @@ module.exports = class AddCommand extends Commando.Command {
 
     const embed = new Discord.MessageEmbed()
       .setTitle("Help")
+      .setDescription("**Legends:** `<required arg>` `[optional arg]`\n-")
       .addFields(...fields)
       .setColor(config.SUCCESS_COLOR);
 

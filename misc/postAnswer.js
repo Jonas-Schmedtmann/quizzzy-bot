@@ -191,7 +191,6 @@ const checks = async function (message, latestQuestion) {
 
   const ifAnswered = ifAnsweredReq.data.data;
   const conditions = [restrictedUser(message), message.author.bot, ifAnswered];
-  // console.log(conditions);
   return conditions.some((check) => check === true);
 };
 

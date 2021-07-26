@@ -4,6 +4,25 @@ const axios = require("axios");
 const { MessageButton, MessageActionRow } = require("discord-buttons");
 const config = require("../config");
 
+const sendDividerStr = async (message, number) => {
+  const dividerStr = `**  Answers for HTML Quiz Question ${number}   **`;
+  const evenDigits = String(number).length % 2 === 0;
+  const topBottomStr = 85;
+  const leftRightStr = evenDigits
+    ? Math.trunc((100 - dividerStr.length) / 2) - 2
+    : Math.trunc((100 - dividerStr.length) / 2);
+
+  await message.client.channels.cache
+    .get(process.env.HTML_LOGS_CHANNEL_ID)
+    .send(
+      `${"=".repeat(topBottomStr)}\n${"=".repeat(leftRightStr)}${
+        evenDigits ? "=" : ""
+      }${dividerStr}${"=".repeat(leftRightStr)}${
+        evenDigits ? "==" : ""
+      }\n${"=".repeat(topBottomStr)}`
+    );
+};
+
 const getQuestionCount = async () => {
   const res = await axios({
     method: "GET",
@@ -50,9 +69,10 @@ module.exports = async function (message, client) {
         if (this.questions[this.currentQuestion - 1]?.type === "IMAGE") {
           const attachments = prevMessage?.attachments?.values();
           if (!attachments) {
-            reply = "skip";
+            this.currentQuestion--;
+            return this.askQuestion();
           } else {
-            reply = Array.from(attachments)[0]?.url || "skip";
+            reply = Array.from(attachments)[0]?.url;
           }
         }
 
@@ -61,7 +81,8 @@ module.exports = async function (message, client) {
 
         if (validate) this.currentQuestion++;
       } else {
-        this.replies.push(reply);
+        if (!command) this.replies.push(reply);
+        client.removeListener("message", question.onReplies);
         await this.save();
       }
     }
@@ -135,9 +156,6 @@ module.exports = async function (message, client) {
     async save() {
       let [description, imageURL, explanation] = [...this.replies];
 
-      if (description === "skip") description = null;
-      if (imageURL === "skip") imageURL = null;
-
       post = {
         userId: userId,
         questionNo: (await getQuestionCount()) + 1,
@@ -206,6 +224,8 @@ module.exports = async function (message, client) {
               )
               .setColor(config.SUCCESS_COLOR)
           );
+
+          sendDividerStr(message, post.questionNo);
         }
 
         // Delete the messages
@@ -253,11 +273,9 @@ module.exports = async function (message, client) {
     {
       question: "Please add a image of the design to code.",
       type: "IMAGE",
-      optional: true,
       validate(reply, replyMessage) {
         const image = Array.from(replyMessage.attachments.values())[0];
-        if (image?.url || replyMessage.content === "skip" || reply === null)
-          return true;
+        if (image?.url || reply === null) return true;
         return false;
       },
       validationError: "No image was posted, please add an image.",
@@ -277,7 +295,7 @@ module.exports = async function (message, client) {
   );
   const embed = new Discord.MessageEmbed()
     .setTitle(
-      `${emoji}  Answer the below questions to set the question for HTML Coding challange. You can type \`cancel\` at any time to cancel question creation.`
+      `${emoji}  Answer the below questions to set the question for HTML Coding challange. You can type \`cancel\` at any time to cancel question creation. Remember you cannot \`skip\` any question, \`skip\` will be considered as an answer to the question.`
     )
     .setColor(config.WARNING_COLOR);
 
