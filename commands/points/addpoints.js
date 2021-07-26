@@ -127,7 +127,7 @@ module.exports = class AddCommand extends Commando.Command {
 
     const points = +args.split(" ")[1];
 
-    if (!points || !isNumeric(points)) {
+    if ((!points || !isNumeric(points)) && points !== 0) {
       return send("ERROR", `Points should be a number!`);
     }
 
@@ -141,15 +141,25 @@ module.exports = class AddCommand extends Commando.Command {
     const body = { points, checkedBy: message.author.id };
     if (reason) body.message = reason;
 
-    const oldPoints = await updatePoints(id, points);
+    if (points !== 0) {
+      const oldPoints = await updatePoints(id, points);
 
+      await updateAnswer(id, latestQuestion._id, body);
+
+      send(
+        "SUCCESS",
+        `${member.user.username}'s (${
+          member.user.id
+        }) points has been incresed from ${oldPoints} to ${oldPoints + points}`
+      );
+
+      return;
+    }
     await updateAnswer(id, latestQuestion._id, body);
 
     send(
       "SUCCESS",
-      `${member.user.username}'s (${
-        member.user.id
-      }) points has been incresed from ${oldPoints} to ${oldPoints + points}`
+      `${member.user.username}'s (${member.user.id}) points has not been incresed!`
     );
   }
 };
