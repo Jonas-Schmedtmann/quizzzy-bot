@@ -15,7 +15,7 @@ module.exports = async function getScore(identity) {
   const user = users[userIndex];
 
   if (!user) {
-    return `<@${id}> does not exists as they have not answered any questions yet, try with another user.`;
+    return `<@${id}> does not exists.`;
   }
 
   const splitTag = user.tag.split("#");

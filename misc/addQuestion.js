@@ -4,6 +4,25 @@ const axios = require("axios");
 const { MessageButton, MessageActionRow } = require("discord-buttons");
 const config = require("../config");
 
+const sendDividerStr = async (message, number) => {
+  const dividerStr = `**  Answers for Trivia Question ${number}   **`;
+  const evenDigits = String(number).length % 2 === 0;
+  const topBottomStr = 85;
+  const leftRightStr = evenDigits
+    ? Math.trunc((100 - dividerStr.length) / 2) - 1
+    : Math.trunc((100 - dividerStr.length) / 2);
+
+  await message.client.channels.cache
+    .get(process.env.HTML_LOGS_CHANNEL_ID)
+    .send(
+      `${"=".repeat(topBottomStr)}\n${"=".repeat(leftRightStr)}${
+        evenDigits ? "=" : ""
+      }${dividerStr}${"=".repeat(leftRightStr)}${
+        evenDigits ? "==" : ""
+      }\n${"=".repeat(topBottomStr)}`
+    );
+};
+
 const getQuestionCount = async () => {
   const res = await axios({
     method: "GET",
@@ -44,10 +63,7 @@ module.exports = async function (message, client) {
         return this.askQuestion();
       }
 
-      console.log(reply, command, this.currentQuestion < this.questions.length);
-
       if (this.currentQuestion < this.questions.length) {
-        console.log("== 1 ==");
         const curQuestion = this.questions[this.currentQuestion];
 
         if (this.questions[this.currentQuestion - 1]?.type === "IMAGE") {
@@ -64,8 +80,7 @@ module.exports = async function (message, client) {
 
         if (command && validate) this.currentQuestion++;
       } else {
-        console.log("== 2 ==");
-        this.replies.push(reply);
+        if (reply) this.replies.push(reply);
         client.removeListener("message", question.onReplies);
         await this.save();
       }
@@ -258,6 +273,8 @@ module.exports = async function (message, client) {
               )
               .setColor(config.SUCCESS_COLOR)
           );
+
+          sendDividerStr(message, post.questionNo);
         }
 
         // Delete the messages
@@ -286,6 +303,8 @@ module.exports = async function (message, client) {
       this.questions = [];
       this.replies = [];
       this.currentQuestion = 0;
+
+      client.removeListener("message", question.onReplies);
     }
   }
 
