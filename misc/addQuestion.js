@@ -13,7 +13,7 @@ const sendDividerStr = async (message, number) => {
     : Math.trunc((100 - dividerStr.length) / 2);
 
   await message.client.channels.cache
-    .get(process.env.HTML_LOGS_CHANNEL_ID)
+    .get(process.env.TRIVIA_LOGS_CHANNEL_ID)
     .send(
       `${"=".repeat(topBottomStr)}\n${"=".repeat(leftRightStr)}${
         evenDigits ? "=" : ""
