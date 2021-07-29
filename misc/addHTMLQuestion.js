@@ -75,13 +75,11 @@ module.exports = async function (message, client) {
             reply = Array.from(attachments)[0]?.url;
           }
         }
-
         send(`**${curQuestion.question}**`);
         if (reply) this.replies.push(reply);
-
         if (validate) this.currentQuestion++;
       } else {
-        if (!command) this.replies.push(reply);
+        this.replies.push(reply);
         client.removeListener("message", question.onReplies);
         await this.save();
       }
@@ -123,8 +121,8 @@ module.exports = async function (message, client) {
     }
 
     async confirmQuestion(description, questionNo, imageURL, message) {
-      const questionEmbed = await generateHTMLQuestion(
-        "Can you convert this design to code with only HTML & CSS?",
+      const [questionEmbed, answerEmbed] = await generateHTMLQuestion(
+        "Can you recreate this design only using HTML & CSS?",
         description,
         questionNo,
         imageURL,
@@ -132,6 +130,7 @@ module.exports = async function (message, client) {
       );
 
       this.questionEmbed = questionEmbed;
+      this.answerEmbed = answerEmbed;
 
       const button = new MessageButton()
         .setStyle("green")
@@ -146,6 +145,11 @@ module.exports = async function (message, client) {
         .setID("remove_question");
 
       const row = new MessageActionRow().addComponents(button, button2);
+
+      this.confirmAnswerMessage = await message.channel.send(
+        "👇 This is how the answer of the last question will look like, are u happy with it?",
+        answerEmbed
+      );
       this.confirmMessage = await message.channel.send(
         "👇 This is how the question will look, are u happy with it?",
         questionEmbed
@@ -190,6 +194,7 @@ module.exports = async function (message, client) {
       ) {
         const deleteMessages = async (msg, sec = 3) => {
           const infoMessage = await reply.send(msg);
+          await this.confirmAnswerMessage.delete();
           await this.confirmMessage.delete();
           await this.buttonsMessage.delete();
 
@@ -209,7 +214,10 @@ module.exports = async function (message, client) {
           // Show final message
           await message.client.channels.cache
             .get(process.env.HTML_QUESTION_CHANNEL_ID)
-            .send(`<@&${process.env.TRIVIA_ROLE_ID}>`, this.questionEmbed);
+            .send(`<@&${process.env.TRIVIA_ROLE_ID}>`, this.answerEmbed);
+          await message.client.channels.cache
+            .get(process.env.HTML_QUESTION_CHANNEL_ID)
+            .send(this.questionEmbed);
 
           await deleteMessages("https://i.stack.imgur.com/KZiub.gif");
 
@@ -295,7 +303,10 @@ module.exports = async function (message, client) {
   );
   const embed = new Discord.MessageEmbed()
     .setTitle(
-      `${emoji}  Answer the below questions to set the question for HTML Coding challange. You can type \`cancel\` at any time to cancel question creation. Remember you cannot \`skip\` any question, \`skip\` will be considered as an answer to the question.`
+      `${emoji}  Answer the below questions to set the question for HTML Coding challange. You can type \`cancel\` at any time to cancel question creation.`
+    )
+    .setDescription(
+      "Remember you cannot `skip` any question, `skip` will be considered as an answer to the question."
     )
     .setColor(config.WARNING_COLOR);
 
