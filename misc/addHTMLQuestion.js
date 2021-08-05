@@ -158,12 +158,11 @@ module.exports = async function (message, client) {
     }
 
     async save() {
-      let [description, imageURL, explanation] = [...this.replies];
+      let [description, imageURL] = [...this.replies];
 
       post = {
         userId: userId,
         questionNo: (await getQuestionCount()) + 1,
-        explanation: explanation,
       };
 
       if (imageURL) post.image = imageURL;
@@ -287,14 +286,6 @@ module.exports = async function (message, client) {
         return false;
       },
       validationError: "No image was posted, please add an image.",
-    },
-    {
-      question: "Please enter the solution link for this question.",
-      validate(reply) {
-        return reply.length < 4096;
-      },
-      validationError:
-        "Solutions is limited to 4096 characters, please reduce the text.",
     },
   ]);
 
