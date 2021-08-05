@@ -36,6 +36,7 @@ client.on("ready", async () => {
   client.registry
     .registerGroups([
       ["questions", "Commands related to questions."],
+      ["answers", "Commands related to answers."],
       ["users", "Commands related to users."],
       ["points", "Commands related to points."],
       ["settings", "Commands related to bot settings."],
