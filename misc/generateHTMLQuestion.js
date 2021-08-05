@@ -10,12 +10,6 @@ module.exports = async function (
   image = null,
   message
 ) {
-  const fetchedQuestion = await axios({
-    method: "GET",
-    url: `${process.env.BASE_URL}htmlquestions/latest`,
-  });
-  const latestQuestion = fetchedQuestion.data.data.data[0];
-
   const questionEmbed = new Discord.MessageEmbed()
     .setTitle(title)
     .setDescription(
@@ -34,9 +28,32 @@ module.exports = async function (
     questionEmbed.setImage(image);
   }
 
+  const fetchedQuestion = await axios({
+    method: "GET",
+    url: `${process.env.BASE_URL}htmlquestions/latest`,
+  });
+  const latestQuestionId = fetchedQuestion.data.data.data[0]._id;
+
+  const fetchedtopAnswers = await axios({
+    method: "GET",
+    url: `${process.env.BASE_URL}htmlanswers?sort=-points&limit=5&questionId=${latestQuestionId}&fields=userId,answer,points,-_id`,
+  });
+  const topAnswers = fetchedtopAnswers.data.data.data;
+
+  const regex =
+    /https?:\/\/co?de?pe?n\.io\/[a-zA-Z0-9-_]{2,50}\/pen\/[a-zA-Z0-9-_]{0,10}/g;
+
+  const formattedAnswers = topAnswers.map((ans, i) => {
+    const penLink = ans.answer.match(regex) ? ans.answer.match(regex)[0] : "";
+
+    return `${i + 1}) <@${ans.userId}>: ${penLink} - **Points:** ${ans.points}`;
+  });
+
   const answerEmbed = new Discord.MessageEmbed()
-    .setTitle(`Solution for HTML Challange #${questionNo - 1}`)
-    .setDescription(latestQuestion.explanation)
+    .setTitle(`Top Entries for HTML Coding Challange #${questionNo - 1}`)
+    .setDescription(
+      `Here are some of the top entries:\n${formattedAnswers.join("\n")}`
+    )
     .setColor(config.SUCCESS_COLOR);
 
   return [questionEmbed, answerEmbed];
