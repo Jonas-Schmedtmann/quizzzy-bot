@@ -79,6 +79,15 @@ module.exports = async function (message, client) {
         if (reply) this.replies.push(reply);
         if (validate) this.currentQuestion++;
       } else {
+        if (this.questions[this.currentQuestion - 1]?.type === "IMAGE") {
+          const attachments = prevMessage?.attachments?.values();
+          if (!attachments) {
+            this.currentQuestion--;
+            return this.askQuestion();
+          } else {
+            reply = Array.from(attachments)[0]?.url;
+          }
+        }
         this.replies.push(reply);
         client.removeListener("message", question.onReplies);
         await this.save();
@@ -159,7 +168,6 @@ module.exports = async function (message, client) {
 
     async save() {
       let [description, imageURL] = [...this.replies];
-
       post = {
         userId: userId,
         questionNo: (await getQuestionCount()) + 1,
