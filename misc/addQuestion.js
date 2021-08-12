@@ -3,6 +3,7 @@ const generateQuestion = require("./generateQuestion");
 const axios = require("axios");
 const { MessageButton, MessageActionRow } = require("discord-buttons");
 const config = require("../config");
+// const getScores = require("./getScores");
 
 const sendDividerStr = async (message, number) => {
   const dividerStr = `**  Answers for Trivia Question ${number}   **`;
@@ -259,6 +260,9 @@ module.exports = async function (message, client) {
           await message.client.channels.cache
             .get(process.env.QUESTION_CHANNEL_ID)
             .send(this.questionEmbed);
+
+          // await getScores(message, 1, process.env.BOT_COMMAND_CHANNEL_ID);
+          // await getScores(message, 2, process.env.BOT_COMMAND_CHANNEL_ID);
 
           await deleteMessages("https://i.stack.imgur.com/KZiub.gif");
 

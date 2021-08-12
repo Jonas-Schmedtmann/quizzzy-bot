@@ -14,7 +14,7 @@ module.exports = class AddCommand extends Commando.Command {
       description: "Message/Reason for the HTML Question",
       format: "message [user id|question no] [question no]",
       argsType: "multiple",
-      throttling: { usages: 1, duration: 14400 },
+      throttling: { usages: 3, duration: 14400 },
     });
   }
 

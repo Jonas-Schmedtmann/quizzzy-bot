@@ -3,6 +3,7 @@ const generateHTMLQuestion = require("./generateHTMLQuestion");
 const axios = require("axios");
 const { MessageButton, MessageActionRow } = require("discord-buttons");
 const config = require("../config");
+// const getScores = require("./getScores");
 
 const sendDividerStr = async (message, number) => {
   const dividerStr = `**  Answers for HTML Quiz Question ${number}   **`;
@@ -227,6 +228,9 @@ module.exports = async function (message, client) {
             .send(this.questionEmbed);
 
           await deleteMessages("https://i.stack.imgur.com/KZiub.gif");
+
+          // await getScores(message, 1, process.env.BOT_COMMAND_CHANNEL_ID);
+          // await getScores(message, 2, process.env.BOT_COMMAND_CHANNEL_ID);
 
           send(
             new Discord.MessageEmbed()

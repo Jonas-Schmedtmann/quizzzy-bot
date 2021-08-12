@@ -2,7 +2,11 @@ const Discord = require("discord.js");
 const axios = require("axios");
 const config = require("../config");
 
-module.exports = async function showPoints(message, page) {
+module.exports = async function showPoints(
+  message,
+  page,
+  postChannelId = null
+) {
   const getCount = await axios({
     method: "GET",
     url: `${process.env.BASE_URL}users/count`,
@@ -15,9 +19,15 @@ module.exports = async function showPoints(message, page) {
     : Math.trunc(count / 8) + 1;
 
   if (page && maxPage < +page) {
-    return message.reply(
-      `\`${page}\` is not a valid page number! Enter a number between 1 - ${maxPage}.`
-    );
+    const errMsg = `\`${page}\` is not a valid page number! Enter a number between 1 - ${maxPage}.`;
+
+    if (postChannelId) {
+      return await message.client.channels.cache
+        .get(postChannelId)
+        .send(`<@${message.author.id}>, ${errMsg}`);
+    }
+
+    return message.reply(errMsg);
   }
 
   const res = await axios({
@@ -90,6 +100,10 @@ ${strArr.join("\n")}
 \`\`\``,
     })
     .setColor(config.WARNING_COLOR);
+
+  if (postChannelId) {
+    return await message.client.channels.cache.get(postChannelId).send(embed);
+  }
 
   message.channel.send(embed);
 };
